@@ -1,4 +1,4 @@
-# GajananGems Admin Panel 
+# GajananGems Admin Panel
 
 A Flask-based admin panel for managing products and categories in your Supabase store.
 
@@ -16,7 +16,7 @@ cp .env.example .env
 python app.py
 ```
 
-Open http://localhost:5000 in browser.
+Open http://localhost:5000 in your browser.
 
 ## Features
 

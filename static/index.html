@@ -699,6 +699,11 @@
       <span class="icon">⬡</span> Categories
       <span class="badge" id="nav-cat-count">—</span>
     </div>
+    <div class="nav-section-label">Sales</div>
+    <div class="nav-item" onclick="goTo('orders')">
+      <span class="icon">🛒</span> Orders
+      <span class="badge" id="nav-order-count">—</span>
+    </div>
   </nav>
   <div class="sidebar-footer">Shubhanjali Store</div>
 </aside>
@@ -779,6 +784,35 @@
         </div>
         <div class="cat-grid" id="cat-grid">
           <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders -->
+    <div class="page" id="page-orders">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Orders</div>
+          <div class="search-wrap">
+            <span class="icon">⌕</span>
+            <input class="search-input" type="text" id="order-search" placeholder="Search orders…" oninput="filterOrders()">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID & Date</th>
+                <th>Customer</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <tr class="loading-row"><td colspan="5">Loading orders…</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -921,12 +955,28 @@
   </div>
 </div>
 
+<!-- Order Details Modal -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <div class="modal-title" id="order-modal-title">Order Details</div>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('order-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="order-modal-body">
+      <!-- Order contents will be injected here -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('order-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 
 <script>
 const API = '';
-let products = [], categories = [], editingProductId = null, editingCatId = null;
+let products = [], categories = [], orders = [], editingProductId = null, editingCatId = null;
 let extraImages = [null,null,null,null,null,null,null,null];
 let confirmCallback = null;
 
@@ -936,12 +986,12 @@ function goTo(page) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.textContent.toLowerCase().includes(page === 'dashboard' ? 'dashboard' : page === 'products' ? 'product' : 'categor')) {
+    if (n.textContent.toLowerCase().includes(page === 'dashboard' ? 'dashboard' : page === 'products' ? 'product' : page === 'categories' ? 'categor' : 'order')) {
       n.classList.add('active');
     }
   });
 
-  const titles = { dashboard: 'Dashboard', products: 'Products', categories: 'Categories' };
+  const titles = { dashboard: 'Dashboard', products: 'Products', categories: 'Categories', orders: 'Orders' };
   document.getElementById('topbar-title').textContent = titles[page] || page;
   const actions = document.getElementById('topbar-actions');
   actions.innerHTML = '';
@@ -951,6 +1001,8 @@ function goTo(page) {
   } else if (page === 'categories') {
     actions.innerHTML = '<button class="btn btn-outline btn-sm" onclick="openCategoryModal()">＋ Add Category</button>';
     loadCategories();
+  } else if (page === 'orders') {
+    loadOrders();
   }
 }
 
@@ -993,6 +1045,8 @@ async function loadStats() {
     document.getElementById('s-revenue').textContent = '₹' + Number(d.total_revenue).toLocaleString('en-IN', {maximumFractionDigits:0});
     document.getElementById('nav-prod-count').textContent = d.total_products;
     document.getElementById('nav-cat-count').textContent = d.total_categories;
+    const navOrder = document.getElementById('nav-order-count');
+    if (navOrder) navOrder.textContent = d.total_orders;
   } catch(e) { console.error(e); }
 }
 
@@ -1033,8 +1087,8 @@ function refreshCatSelects() {
 }
 
 function openCategoryModal(id = null) {
-  editingCatId = id;
   resetCatForm();
+  editingCatId = id;
   document.getElementById('cat-modal-title').textContent = id ? 'Edit Category' : 'Add Category';
   document.getElementById('save-cat-btn').textContent = id ? 'Save Changes' : 'Save Category';
   if (id) {
@@ -1092,7 +1146,10 @@ async function saveCategory() {
     closeModal('category-modal');
     loadCategories();
     loadStats();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  } catch(e) { 
+    console.error('Error saving category:', e);
+    toast('Error: ' + e.message, 'error'); 
+  }
   finally { btn.textContent = editingCatId ? 'Save Changes' : 'Save Category'; btn.disabled = false; }
 }
 
@@ -1193,9 +1250,9 @@ function removeExtra(i) {
 }
 
 function openProductModal(id = null) {
+  resetProductForm();
   editingProductId = id;
   extraImages = [null,null,null,null,null,null,null,null];
-  resetProductForm();
   document.getElementById('product-modal-title').textContent = id ? 'Edit Product' : 'Add Product';
   document.getElementById('save-product-btn').textContent = id ? 'Save Changes' : 'Save Product';
 
@@ -1284,7 +1341,10 @@ async function saveProduct() {
     closeModal('product-modal');
     loadProducts();
     loadStats();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  } catch(e) { 
+    console.error('Error saving product:', e);
+    toast('Error: ' + e.message, 'error'); 
+  }
   finally { btn.textContent = editingProductId ? 'Save Changes' : 'Save Product'; btn.disabled = false; }
 }
 
@@ -1369,6 +1429,131 @@ function slugify(text) {
   return text.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-');
 }
 
+// ── Orders ───────────────────────────────────────────────────────────────────
+async function loadOrders() {
+  const tbody = document.getElementById('orders-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr class="loading-row"><td colspan="5">Loading orders…</td></tr>';
+  try {
+    const res = await fetch(API + '/api/orders');
+    orders = await res.json();
+    renderOrders(orders);
+  } catch(e) {
+    console.error('Error loading orders:', e);
+    toast('Failed to load orders', 'error');
+  }
+}
+
+function renderOrders(list) {
+  const tbody = document.getElementById('orders-tbody');
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">🛒</div><p>No orders yet.</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(o => {
+    return `<tr>
+      <td><div style="font-weight:500">#${o.id}</div><div style="font-size:0.72rem;color:var(--text-muted)">${new Date(o.created_at).toLocaleDateString()}</div></td>
+      <td>
+        <div style="font-weight:500">${o.first_name || ''} ${o.last_name || ''}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted)">${o.email || ''}</div>
+      </td>
+      <td>
+        <span class="price-main">₹${Number(o.total).toLocaleString('en-IN')}</span>
+      </td>
+      <td>
+        <select class="search-input" style="padding:4px 8px; width:auto; font-size:0.8rem" onchange="updateOrderStatus(${o.id}, this.value)">
+          <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
+          <option value="processing" ${o.status === 'processing' ? 'selected' : ''}>Processing</option>
+          <option value="shipped" ${o.status === 'shipped' ? 'selected' : ''}>Shipped</option>
+          <option value="delivered" ${o.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+          <option value="cancelled" ${o.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+        </select>
+      </td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="viewOrderDetails(${o.id})">View Details</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterOrders() {
+  const q = document.getElementById('order-search').value.toLowerCase();
+  const filtered = orders.filter(o => 
+    String(o.id).includes(q) || 
+    (o.first_name || '').toLowerCase().includes(q) || 
+    (o.last_name || '').toLowerCase().includes(q) ||
+    (o.email || '').toLowerCase().includes(q)
+  );
+  renderOrders(filtered);
+}
+
+async function updateOrderStatus(id, status) {
+  try {
+    const res = await fetch(API + `/api/orders/${id}`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({status})
+    });
+    if (!res.ok) throw new Error(await res.text());
+    toast('Order status updated');
+    loadStats();
+  } catch(e) {
+    console.error('Error updating order status:', e);
+    toast('Error updating status', 'error');
+    loadOrders(); // reload to revert select
+  }
+}
+
+function viewOrderDetails(id) {
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  
+  document.getElementById('order-modal-title').textContent = `Order #${o.id} Details`;
+  
+  let itemsHtml = (o.order_items || []).map(item => `
+    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-weight:500; font-size:0.85rem">${item.title}</div>
+        <div style="font-size:0.75rem; color:var(--text-muted)">Qty: ${item.qty} ${item.size ? '| Size: '+item.size : ''}</div>
+      </div>
+      <div style="font-weight:500; font-size:0.85rem">₹${Number(item.price * item.qty).toLocaleString('en-IN')}</div>
+    </div>
+  `).join('');
+  
+  if (!itemsHtml) itemsHtml = '<div style="color:var(--text-muted); padding:10px 0;">No items found.</div>';
+  
+  const body = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+      <div>
+        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px;">Customer</div>
+        <div style="font-size:0.85rem">
+          <strong>${o.first_name || ''} ${o.last_name || ''}</strong><br>
+          ${o.email || ''}<br>
+          ${o.phone || ''}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px;">Shipping Address</div>
+        <div style="font-size:0.85rem">
+          ${o.address || ''}<br>
+          ${o.city || ''}, ${o.state || ''} - ${o.pin || ''}<br>
+          ${o.country || ''}
+        </div>
+      </div>
+    </div>
+    <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px; padding-bottom:6px; border-bottom:1px solid var(--border);">Order Items</div>
+    ${itemsHtml}
+    <div style="display:flex; justify-content:space-between; padding-top:14px; margin-top:10px; border-top:1px solid var(--border); font-size:0.9rem;">
+      <strong>Total</strong>
+      <strong style="color:var(--gold)">₹${Number(o.total).toLocaleString('en-IN')}</strong>
+    </div>
+  `;
+  
+  document.getElementById('order-modal-body').innerHTML = body;
+  openModal('order-modal');
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   buildExtraGrid();
@@ -1378,15 +1563,11 @@ async function init() {
 
 init();
 
-// Close modals on overlay click
+// Close modals on overlay click (disabled for panel forms to prevent accidental data loss)
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', function(e) {
     if (e.target === this) {
-      const modal = this.querySelector('.modal');
-      if (modal) {
-        const id = this.id;
-        closeModal(id);
-      }
+      // Do nothing, force user to use Cancel/Close buttons
     }
   });
 });

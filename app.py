@@ -12,7 +12,8 @@ app = Flask(__name__, static_folder="static")
 CORS(app)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+# Prefer service role key to bypass RLS for admin backend operations
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", os.getenv("SUPABASE_KEY", ""))
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def slugify(text):
@@ -127,38 +128,43 @@ def create_product():
 
 @app.route("/api/products/<int:prod_id>", methods=["PUT"])
 def update_product(prod_id):
-    data = request.json
-    payload = {}
-    for field in ["title", "description", "price", "old_price", "image_url", "category_id", "available", "slug"]:
-        if field in data:
-            payload[field] = data[field]
-    if "price" in payload:
-        payload["price"] = float(payload["price"])
-    if "old_price" in payload and payload["old_price"]:
-        payload["old_price"] = float(payload["old_price"])
+    try:
+        data = request.json
+        payload = {}
+        for field in ["title", "description", "price", "old_price", "image_url", "category_id", "available", "slug"]:
+            if field in data:
+                payload[field] = data[field]
+        
+        if "price" in payload and payload["price"] is not None:
+            payload["price"] = float(payload["price"])
+        if "old_price" in payload:
+            payload["old_price"] = float(payload["old_price"]) if payload["old_price"] is not None and str(payload["old_price"]).strip() != "" else None
 
-    if payload:
-        supabase.table("products").update(payload).eq("id", prod_id).execute()
+        if payload:
+            supabase.table("products").update(payload).eq("id", prod_id).execute()
 
-    # Handle extra images replacement
-    if "extra_images" in data:
-        supabase.table("product_images").delete().eq("product_id", prod_id).execute()
-        for i, img_url in enumerate(data["extra_images"]):
-            if img_url:
-                supabase.table("product_images").insert({
-                    "product_id": prod_id,
-                    "image_url": img_url,
-                    "sort_order": i,
-                }).execute()
+        # Handle extra images replacement
+        if "extra_images" in data:
+            supabase.table("product_images").delete().eq("product_id", prod_id).execute()
+            for i, img_url in enumerate(data["extra_images"]):
+                if img_url:
+                    supabase.table("product_images").insert({
+                        "product_id": prod_id,
+                        "image_url": img_url,
+                        "sort_order": i,
+                    }).execute()
 
-    res = (
-        supabase.table("products")
-        .select("*, categories(name), product_images(id, image_url, sort_order)")
-        .eq("id", prod_id)
-        .single()
-        .execute()
-    )
-    return jsonify(res.data)
+        res = (
+            supabase.table("products")
+            .select("*, categories(name), product_images(id, image_url, sort_order)")
+            .eq("id", prod_id)
+            .single()
+            .execute()
+        )
+        return jsonify(res.data)
+    except Exception as e:
+        print(f"Error updating product: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/products/<int:prod_id>", methods=["DELETE"])
 def delete_product(prod_id):
@@ -183,14 +189,51 @@ def upload_image():
     filename = f"{uuid.uuid4()}.{ext}"
     file_bytes = file.read()
 
-    supabase.storage.from_(bucket).upload(
-        filename,
-        file_bytes,
-        file_options={"content-type": file.content_type},
-    )
+    try:
+        supabase.storage.from_(bucket).upload(
+            filename,
+            file_bytes,
+            file_options={"content-type": file.content_type},
+        )
+        public_url = supabase.storage.from_(bucket).get_public_url(filename)
+        return jsonify({"url": public_url})
+    except Exception as e:
+        print(f"Error uploading image: {e}")
+        return jsonify({"error": str(e)}), 500
 
-    public_url = supabase.storage.from_(bucket).get_public_url(filename)
-    return jsonify({"url": public_url})
+# ─── Orders ───────────────────────────────────────────────────────────────────
+
+@app.route("/api/orders", methods=["GET"])
+def get_orders():
+    try:
+        # Fetch orders along with their order items
+        res = (
+            supabase.table("orders")
+            .select("*, order_items(*)")
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return jsonify(res.data)
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/orders/<int:order_id>", methods=["PUT"])
+def update_order(order_id):
+    try:
+        data = request.json
+        if "status" not in data:
+            return jsonify({"error": "Status is required"}), 400
+            
+        res = supabase.table("orders").update({"status": data["status"]}).eq("id", order_id).execute()
+        
+        if not res.data:
+            return jsonify({"error": "Order not found"}), 404
+            
+        return jsonify(res.data[0])
+    except Exception as e:
+        print(f"Error updating order: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # ─── Stats ────────────────────────────────────────────────────────────────────
 
