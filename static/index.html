@@ -864,6 +864,16 @@
             <span class="toggle-label">Available for purchase</span>
           </div>
         </div>
+        <div class="form-group full">
+          <label>Bestseller</label>
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="p-bestseller">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Mark as Bestseller</span>
+          </div>
+        </div>
       </div>
       <div class="divider"></div>
       <div class="form-group">
@@ -1183,7 +1193,10 @@ function renderProducts(list) {
     return `<tr>
       <td>${p.image_url ? `<img class="thumb" src="${p.image_url}" alt="" onerror="this.style.opacity=0">` : `<div class="thumb-placeholder">◇</div>`}</td>
       <td>
-        <div style="font-weight:500">${p.title}</div>
+        <div style="font-weight:500">
+          ${p.title}
+          ${p.bestseller ? '<span class="badge-pill badge-gold" style="font-size: 0.6rem; padding: 2px 6px; margin-left: 5px;">Bestseller</span>' : ''}
+        </div>
         <div style="font-size:0.72rem;color:var(--text-muted)">${p.slug || ''}</div>
       </td>
       <td><span class="badge-pill badge-blue">${catName}</span></td>
@@ -1270,6 +1283,7 @@ function openProductModal(id = null) {
       document.getElementById('p-desc').value = p.description || '';
       document.getElementById('p-image-url').value = p.image_url || '';
       document.getElementById('p-available').checked = !!p.available;
+      document.getElementById('p-bestseller').checked = !!p.bestseller;
       if (p.category_id) document.getElementById('p-category').value = p.category_id;
       if (p.image_url) {
         document.getElementById('main-img-el').src = p.image_url;
@@ -1289,6 +1303,7 @@ function resetProductForm() {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   const av = document.getElementById('p-available'); if(av) av.checked = true;
+  const bs = document.getElementById('p-bestseller'); if(bs) bs.checked = false;
   document.getElementById('main-img-preview').style.display = 'none';
   // Clean up hidden extra file inputs
   document.querySelectorAll('input[id^="extra-file-"]').forEach(el => el.remove());
@@ -1327,6 +1342,7 @@ async function saveProduct() {
     image_url: document.getElementById('p-image-url').value.trim(),
     category_id: document.getElementById('p-category').value || null,
     available: document.getElementById('p-available').checked,
+    bestseller: document.getElementById('p-bestseller').checked,
     extra_images: extraImages.filter(Boolean),
   };
 

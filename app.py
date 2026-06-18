@@ -110,6 +110,7 @@ def create_product():
         "image_url": data.get("image_url", ""),
         "category_id": data.get("category_id"),
         "available": data.get("available", True),
+        "bestseller": data.get("bestseller", False),
     }
     res = supabase.table("products").insert(payload).execute()
     product = res.data[0]
@@ -131,7 +132,7 @@ def update_product(prod_id):
     try:
         data = request.json
         payload = {}
-        for field in ["title", "description", "price", "old_price", "image_url", "category_id", "available", "slug"]:
+        for field in ["title", "description", "price", "old_price", "image_url", "category_id", "available", "slug", "bestseller"]:
             if field in data:
                 payload[field] = data[field]
         
