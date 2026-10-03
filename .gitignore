@@ -2,3 +2,4 @@
 # Spec Kit
 .gemini/
 .specify/
+__pycache__/

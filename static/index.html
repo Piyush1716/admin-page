@@ -953,6 +953,11 @@
       <span class="icon">🛒</span> Orders
       <span class="badge" id="nav-order-count">—</span>
     </div>
+    <div class="nav-section-label">Engagement</div>
+    <div class="nav-item" onclick="goTo('reviews')">
+      <span class="icon">⭐</span> Reviews
+      <span class="badge" id="nav-review-count">—</span>
+    </div>
   </nav>
   <div class="sidebar-footer">Shubhanjali Store</div>
 </aside>
@@ -1066,8 +1071,42 @@
         </div>
       </div>
     </div>
+
+    <!-- Reviews -->
+    <div class="page" id="page-reviews">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Customer Reviews</div>
+          <div class="search-wrap">
+            <span class="icon">⌕</span>
+            <input class="search-input" type="text" id="review-search" placeholder="Search reviews by product or reviewer…" oninput="filterReviews()">
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="openReviewModal()">＋ Add Manual Review</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Reviewer</th>
+                <th>Rating</th>
+                <th>Status</th>
+                <th>Review</th>
+                <th>Photos</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="reviews-tbody">
+              <tr class="loading-row"><td colspan="8">Loading reviews…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 </main>
+
 
 <!-- Product Modal -->
 <div class="modal-overlay" id="product-modal">
@@ -1231,14 +1270,81 @@
   </div>
 </div>
 
+<!-- Review Modal -->
+<div class="modal-overlay" id="review-modal">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div class="modal-title" id="review-modal-title">Add Manual Review</div>
+      <button class="btn btn-ghost btn-icon" onclick="closeModal('review-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Product *</label>
+          <select id="rev-product-id">
+            <option value="">— Select Product —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Reviewer Name *</label>
+          <input type="text" id="rev-name" placeholder="e.g. Dhruvrajsinh Parmar">
+        </div>
+        <div class="form-group">
+          <label>Rating *</label>
+          <select id="rev-rating">
+            <option value="5">★★★★★ (5 Stars)</option>
+            <option value="4">★★★★☆ (4 Stars)</option>
+            <option value="3">★★★☆☆ (3 Stars)</option>
+            <option value="2">★★☆☆☆ (2 Stars)</option>
+            <option value="1">★☆☆☆☆ (1 Star)</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Review Headline / Title</label>
+          <input type="text" id="rev-title" placeholder="e.g. A Masterclass in Customer Trust & Genuine Crystals!">
+        </div>
+        <div class="form-group full">
+          <label>Review Body</label>
+          <textarea id="rev-body" rows="3" placeholder="Customer review text..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label>Verified Status</label>
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="rev-verified" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Mark as Verified Buyer</span>
+          </div>
+        </div>
+        <div class="form-group full">
+          <label>Review Photos</label>
+          <input type="text" id="rev-image-url" placeholder="Paste image URL (optional) or upload below" onkeydown="if(event.key==='Enter'){event.preventDefault();addReviewImageUrl();}">
+          <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
+            <input type="file" id="rev-file-input" accept="image/*" style="font-size:0.75rem; color:var(--text-dim);" onchange="handleAdminReviewPhotoUpload(event)">
+            <span id="rev-upload-status" style="font-size:0.75rem; color:var(--gold);"></span>
+          </div>
+          <div id="rev-preview-strip" style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('review-modal')">Cancel</button>
+      <button class="btn btn-gold" id="save-review-btn" onclick="saveAdminReview()">Save Review</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 
+
 <script>
 const API = '';
-let products = [], categories = [], orders = [], editingProductId = null, editingCatId = null;
+let products = [], categories = [], orders = [], editingProductId = null, editingCatId = null, editingReviewId = null;
 let extraImages = [null,null,null,null,null,null,null,null];
 let confirmCallback = null;
+
 
 // ── Mobile Sidebar Drawer ────────────────────────────────────────────────────
 function toggleSidebar() {
@@ -1265,14 +1371,19 @@ function goTo(page) {
   closeSidebar();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
+  const targetPage = document.getElementById('page-' + page);
+  if (targetPage) targetPage.classList.add('active');
+
   document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.textContent.toLowerCase().includes(page === 'dashboard' ? 'dashboard' : page === 'products' ? 'product' : page === 'categories' ? 'categor' : 'order')) {
-      n.classList.add('active');
-    }
+    const text = n.textContent.toLowerCase();
+    if (page === 'dashboard' && text.includes('dashboard')) n.classList.add('active');
+    else if (page === 'products' && text.includes('product')) n.classList.add('active');
+    else if (page === 'categories' && text.includes('categor')) n.classList.add('active');
+    else if (page === 'orders' && text.includes('order')) n.classList.add('active');
+    else if (page === 'reviews' && text.includes('review')) n.classList.add('active');
   });
 
-  const titles = { dashboard: 'Dashboard', products: 'Products', categories: 'Categories', orders: 'Orders' };
+  const titles = { dashboard: 'Dashboard', products: 'Products', categories: 'Categories', orders: 'Orders', reviews: 'Customer Reviews' };
   document.getElementById('topbar-title').textContent = titles[page] || page;
   const actions = document.getElementById('topbar-actions');
   actions.innerHTML = '';
@@ -1284,8 +1395,12 @@ function goTo(page) {
     loadCategories();
   } else if (page === 'orders') {
     loadOrders();
+  } else if (page === 'reviews') {
+    actions.innerHTML = '<button class="btn btn-gold btn-sm" onclick="openReviewModal()">＋ Add Manual Review</button>';
+    loadReviews();
   }
 }
+
 
 // ── Toast (Centered Notifications) ───────────────────────────────────────────
 function toast(msg, type = 'success') {
@@ -1418,7 +1533,9 @@ function closeModal(id) {
   resetCancelConfirm(id);
   if (id === 'product-modal') resetProductForm();
   if (id === 'category-modal') resetCatForm();
+  if (id === 'review-modal') editingReviewId = null;
 }
+
 
 // ── Stats ────────────────────────────────────────────────────────────────────
 async function loadStats() {
@@ -1993,12 +2110,302 @@ function viewOrderDetails(id) {
   openModal('order-modal');
 }
 
+// ── Reviews ───────────────────────────────────────────────────────────────────
+let reviewsList = [];
+let reviewModalImages = [];
+
+async function loadReviews() {
+  const tbody = document.getElementById('reviews-tbody');
+  tbody.innerHTML = '<tr class="loading-row"><td colspan="8">Loading reviews…</td></tr>';
+  try {
+    const res = await fetch(API + '/api/reviews');
+    reviewsList = await res.json();
+    const countBadge = document.getElementById('nav-review-count');
+    if (countBadge) countBadge.textContent = reviewsList.length;
+    renderReviews(reviewsList);
+  } catch(e) {
+    console.error(e);
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">Failed to load reviews. Make sure reviews table exists in Supabase.</td></tr>';
+  }
+}
+
+function filterReviews() {
+  const q = (document.getElementById('review-search').value || '').toLowerCase().trim();
+  if (!q) {
+    renderReviews(reviewsList);
+    return;
+  }
+  const filtered = reviewsList.filter(r => {
+    const pTitle = r.products?.title || '';
+    const name = r.reviewer_name || '';
+    const revTitle = r.title || '';
+    const revBody = r.body || '';
+    return pTitle.toLowerCase().includes(q) || name.toLowerCase().includes(q) || revTitle.toLowerCase().includes(q) || revBody.toLowerCase().includes(q);
+  });
+  renderReviews(filtered);
+}
+
+function renderReviews(items) {
+  const tbody = document.getElementById('reviews-tbody');
+  if (!items || !items.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:2rem;margin-bottom:8px;">⭐</div>No reviews found. Click <strong>＋ Add Manual Review</strong> above to create one.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map(r => {
+    const p = r.products || {};
+    const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+    const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : '—';
+    const images = r.review_images || [];
+    const photosHtml = images.length > 0
+      ? `<div style="display:flex;gap:4px;">` + images.slice(0, 3).map(img => `<img src="${img.image_url}" style="width:32px;height:32px;border-radius:4px;object-fit:cover;border:1px solid var(--border);" onerror="this.style.display='none'">`).join('') + (images.length > 3 ? `<span style="font-size:0.7rem;color:var(--text-muted);align-self:center;">+${images.length - 3}</span>` : '') + `</div>`
+      : '<span style="color:var(--text-muted);font-size:0.75rem;">None</span>';
+
+    return `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${p.image_url ? `<img src="${p.image_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--border);" onerror="this.style.display='none'">` : '<div style="width:36px;height:36px;background:var(--bg3);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:0.75rem;">◇</div>'}
+            <div style="font-weight:500;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.title || ('Product #' + r.product_id)}</div>
+          </div>
+        </td>
+        <td><strong>${r.reviewer_name}</strong></td>
+        <td><span style="color:#eab308;font-size:0.95rem;letter-spacing:1px;">${stars}</span> <span style="font-size:0.75rem;color:var(--text-muted);">(${r.rating})</span></td>
+        <td>
+          ${r.verified
+            ? '<span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);padding:2px 8px;border-radius:12px;font-size:0.7rem;">Verified</span>'
+            : '<span class="badge" style="background:var(--bg3);color:var(--text-muted);padding:2px 8px;border-radius:12px;font-size:0.7rem;">Standard</span>'}
+        </td>
+        <td style="max-width:240px;">
+          ${r.title ? `<div style="font-weight:600;font-size:0.8rem;color:var(--text);margin-bottom:2px;">${r.title}</div>` : ''}
+          <div style="font-size:0.75rem;color:var(--text-dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${r.body || '—'}</div>
+        </td>
+        <td>${photosHtml}</td>
+        <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">${dateStr}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-outline btn-sm" style="margin-right:6px;" onclick="openReviewModal(${r.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteReview(${r.id})">Delete</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function openReviewModal(id = null) {
+  editingReviewId = id;
+  document.getElementById('review-modal-title').textContent = id ? 'Edit Review' : 'Add Manual Review';
+  document.getElementById('save-review-btn').textContent = id ? 'Update Review' : 'Save Review';
+
+  document.getElementById('rev-name').value = '';
+  document.getElementById('rev-rating').value = '5';
+  document.getElementById('rev-title').value = '';
+  document.getElementById('rev-body').value = '';
+  document.getElementById('rev-verified').checked = true;
+  document.getElementById('rev-image-url').value = '';
+  document.getElementById('rev-upload-status').textContent = '';
+  reviewModalImages = [];
+
+  // Load products if not loaded yet
+  if (!products.length) {
+    try {
+      const res = await fetch(API + '/api/products');
+      products = await res.json();
+    } catch(e) { console.error(e); }
+  }
+
+  const select = document.getElementById('rev-product-id');
+  select.innerHTML = '<option value="">— Select Product —</option>' + products.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+
+  if (id) {
+    const r = reviewsList.find(x => x.id === id);
+    if (r) {
+      select.value = r.product_id;
+      document.getElementById('rev-name').value = r.reviewer_name || '';
+      document.getElementById('rev-rating').value = String(r.rating || 5);
+      document.getElementById('rev-title').value = r.title || '';
+      document.getElementById('rev-body').value = r.body || '';
+      document.getElementById('rev-verified').checked = Boolean(r.verified);
+      reviewModalImages = (r.review_images || []).map(img => img.image_url);
+    }
+  }
+
+  renderReviewPreviewStrip();
+  openModal('review-modal');
+}
+
+function renderReviewPreviewStrip() {
+  const container = document.getElementById('rev-preview-strip');
+  if (!container) return;
+  container.innerHTML = reviewModalImages.map((url, idx) => `
+    <div style="position:relative;width:54px;height:54px;border-radius:6px;overflow:hidden;border:1px solid var(--border);">
+      <img src="${url}" style="width:100%;height:100%;object-fit:cover;">
+      <button type="button" onclick="removeReviewModalImage(${idx})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+  `).join('');
+}
+
+function addReviewImageUrl() {
+  const input = document.getElementById('rev-image-url');
+  const url = (input.value || '').trim();
+  if (url) {
+    if (reviewModalImages.length >= 4) {
+      toast('Maximum 4 photos allowed', 'error');
+      return;
+    }
+    reviewModalImages.push(url);
+    input.value = '';
+    renderReviewPreviewStrip();
+  }
+}
+
+function removeReviewModalImage(idx) {
+  reviewModalImages.splice(idx, 1);
+  renderReviewPreviewStrip();
+}
+
+async function handleAdminReviewPhotoUpload(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (reviewModalImages.length >= 4) {
+    toast('Maximum 4 photos allowed', 'error');
+    e.target.value = '';
+    return;
+  }
+
+  const statusEl = document.getElementById('rev-upload-status');
+  statusEl.textContent = 'Uploading…';
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('bucket', 'review-images');
+
+    const res = await fetch(API + '/api/upload', {
+      method: 'POST',
+      body: fd,
+    });
+    const data = await res.json();
+    if (data.url) {
+      reviewModalImages.push(data.url);
+      renderReviewPreviewStrip();
+      statusEl.textContent = '✓ Uploaded';
+      setTimeout(() => { statusEl.textContent = ''; }, 2000);
+    } else {
+      statusEl.textContent = 'Upload failed';
+      toast(data.error || 'Failed to upload photo', 'error');
+    }
+  } catch(err) {
+    console.error(err);
+    statusEl.textContent = 'Upload failed';
+    toast('Error uploading image', 'error');
+  }
+  e.target.value = '';
+}
+
+async function saveAdminReview() {
+  const productId = document.getElementById('rev-product-id').value;
+  const reviewerName = (document.getElementById('rev-name').value || '').trim();
+  const rating = parseInt(document.getElementById('rev-rating').value, 10);
+  const title = (document.getElementById('rev-title').value || '').trim();
+  const body = (document.getElementById('rev-body').value || '').trim();
+  const verified = document.getElementById('rev-verified').checked;
+
+  const pendingUrl = (document.getElementById('rev-image-url').value || '').trim();
+  if (pendingUrl && reviewModalImages.length < 4 && !reviewModalImages.includes(pendingUrl)) {
+    reviewModalImages.push(pendingUrl);
+  }
+
+  if (!productId) {
+    toast('Please select a product', 'error');
+    return;
+  }
+  if (!reviewerName) {
+    toast('Please enter reviewer name', 'error');
+    return;
+  }
+  if (!rating || rating < 1 || rating > 5) {
+    toast('Please select a valid star rating', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('save-review-btn');
+  btn.disabled = true;
+  btn.textContent = editingReviewId ? 'Updating…' : 'Saving…';
+
+  try {
+    const payload = {
+      product_id: parseInt(productId, 10),
+      reviewer_name: reviewerName,
+      rating,
+      title: title || undefined,
+      body: body || undefined,
+      verified,
+      image_urls: reviewModalImages,
+    };
+
+    const url = editingReviewId ? (API + `/api/reviews/${editingReviewId}`) : (API + '/api/reviews');
+    const method = editingReviewId ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      toast(editingReviewId ? 'Review updated successfully!' : 'Review created successfully!');
+      closeModal('review-modal');
+      await loadReviews();
+    } else {
+      toast(data.error || 'Failed to save review', 'error');
+    }
+  } catch(err) {
+    console.error(err);
+    toast('Network error saving review', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = editingReviewId ? 'Update Review' : 'Save Review';
+  }
+}
+
+
+function deleteReview(id) {
+  const r = reviewsList.find(x => x.id === id);
+  const reviewerName = r?.reviewer_name || `Review #${id}`;
+  confirm(
+    'Delete Review',
+    `Are you sure you want to delete the review by "${reviewerName}"?`,
+    async () => {
+      try {
+        const res = await fetch(API + `/api/reviews/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          toast('Review deleted');
+          await loadReviews();
+        } else {
+          toast('Failed to delete review', 'error');
+        }
+      } catch(err) {
+        toast('Error deleting review', 'error');
+      }
+    }
+  );
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   buildExtraGrid();
   await loadStats();
   await loadCategories();
+  try {
+    const res = await fetch(API + '/api/reviews');
+    const revs = await res.json();
+    const countBadge = document.getElementById('nav-review-count');
+    if (countBadge) countBadge.textContent = revs.length || 0;
+  } catch(e) {}
 }
+
 
 init();
 

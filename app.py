@@ -256,6 +256,178 @@ def get_stats():
         "total_revenue": total_revenue,
     })
 
+# ─── Reviews ──────────────────────────────────────────────────────────────────
+
+@app.route("/api/reviews", methods=["GET"])
+def get_admin_reviews():
+    try:
+        product_id = request.args.get("product_id")
+        query = (
+            supabase.table("reviews")
+            .select("*, products(id, title, image_url), review_images(id, image_url, sort_order)")
+            .order("created_at", desc=True)
+        )
+        if product_id:
+            query = query.eq("product_id", int(product_id))
+        res = query.execute()
+        return jsonify(res.data)
+    except Exception as e:
+        print(f"Error fetching reviews: {e}")
+        return jsonify([]), 200
+
+@app.route("/api/reviews", methods=["POST"])
+def create_admin_review():
+    try:
+        data = request.json or {}
+        product_id = data.get("product_id")
+        reviewer_name = (data.get("reviewer_name") or "").strip()
+        rating = data.get("rating")
+        title = (data.get("title") or "").strip()
+        body = (data.get("body") or "").strip()
+        verified = bool(data.get("verified", True))
+        image_urls = data.get("image_urls") or []
+
+        if not product_id or not reviewer_name or not rating:
+            return jsonify({"error": "product_id, reviewer_name, and rating are required"}), 400
+
+        try:
+            rating = int(rating)
+            if rating < 1 or rating > 5:
+                return jsonify({"error": "rating must be between 1 and 5"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "invalid rating"}), 400
+
+        payload = {
+            "product_id": int(product_id),
+            "reviewer_name": reviewer_name,
+            "rating": rating,
+            "title": title or None,
+            "body": body or None,
+            "verified": verified,
+            "source": "admin",
+        }
+
+        res = supabase.table("reviews").insert(payload).execute()
+        if not res.data:
+            return jsonify({"error": "Failed to create review"}), 500
+
+        review = res.data[0]
+
+        # Insert review images
+        if image_urls:
+            image_rows = [
+                {
+                    "review_id": review["id"],
+                    "image_url": url,
+                    "sort_order": idx,
+                }
+                for idx, url in enumerate(image_urls)
+                if url
+            ]
+            if image_rows:
+                supabase.table("review_images").insert(image_rows).execute()
+
+        # Fetch complete review record
+        full_res = (
+            supabase.table("reviews")
+            .select("*, products(id, title, image_url), review_images(id, image_url, sort_order)")
+            .eq("id", review["id"])
+            .single()
+            .execute()
+        )
+        return jsonify(full_res.data), 201
+    except Exception as e:
+        print(f"Error creating review: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/reviews/<int:review_id>", methods=["GET"])
+def get_single_admin_review(review_id):
+    try:
+        res = (
+            supabase.table("reviews")
+            .select("*, products(id, title, image_url), review_images(id, image_url, sort_order)")
+            .eq("id", review_id)
+            .single()
+            .execute()
+        )
+        if not res.data:
+            return jsonify({"error": "Review not found"}), 404
+        return jsonify(res.data)
+    except Exception as e:
+        print(f"Error fetching review: {e}")
+        return jsonify({"error": str(e)}), 404
+
+@app.route("/api/reviews/<int:review_id>", methods=["PUT"])
+def update_admin_review(review_id):
+    try:
+        data = request.json or {}
+        payload = {}
+
+        if "product_id" in data and data["product_id"]:
+            payload["product_id"] = int(data["product_id"])
+        if "reviewer_name" in data:
+            reviewer_name = str(data["reviewer_name"]).strip()
+            if not reviewer_name:
+                return jsonify({"error": "reviewer_name cannot be empty"}), 400
+            payload["reviewer_name"] = reviewer_name
+        if "rating" in data and data["rating"]:
+            try:
+                rating = int(data["rating"])
+                if rating < 1 or rating > 5:
+                    return jsonify({"error": "rating must be between 1 and 5"}), 400
+                payload["rating"] = rating
+            except (ValueError, TypeError):
+                return jsonify({"error": "invalid rating"}), 400
+        if "title" in data:
+            payload["title"] = str(data["title"]).strip() or None
+        if "body" in data:
+            payload["body"] = str(data["body"]).strip() or None
+        if "verified" in data:
+            payload["verified"] = bool(data["verified"])
+
+        if payload:
+            supabase.table("reviews").update(payload).eq("id", review_id).execute()
+
+        # Handle images replacement if provided
+        if "image_urls" in data:
+            image_urls = data.get("image_urls") or []
+            supabase.table("review_images").delete().eq("review_id", review_id).execute()
+            if image_urls:
+                image_rows = [
+                    {
+                        "review_id": review_id,
+                        "image_url": url,
+                        "sort_order": idx,
+                    }
+                    for idx, url in enumerate(image_urls)
+                    if url
+                ]
+                if image_rows:
+                    supabase.table("review_images").insert(image_rows).execute()
+
+        full_res = (
+            supabase.table("reviews")
+            .select("*, products(id, title, image_url), review_images(id, image_url, sort_order)")
+            .eq("id", review_id)
+            .single()
+            .execute()
+        )
+        return jsonify(full_res.data)
+    except Exception as e:
+        print(f"Error updating review: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/reviews/<int:review_id>", methods=["DELETE"])
+def delete_admin_review(review_id):
+    try:
+        supabase.table("review_images").delete().eq("review_id", review_id).execute()
+        supabase.table("reviews").delete().eq("id", review_id).execute()
+        return jsonify({"ok": True})
+    except Exception as e:
+        print(f"Error deleting review: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     os.makedirs("static", exist_ok=True)
     app.run(debug=True, port=5000)
