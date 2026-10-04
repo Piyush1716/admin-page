@@ -69,13 +69,100 @@ def delete_category(cat_id):
     supabase.table("categories").delete().eq("id", cat_id).execute()
     return jsonify({"ok": True})
 
+# ─── Stones / Crystals ────────────────────────────────────────────────────────
+
+@app.route("/api/stones", methods=["GET"])
+def get_stones():
+    try:
+        res = supabase.table("stones").select("*").order("name", desc=False).execute()
+        return jsonify(res.data)
+    except Exception as e:
+        print(f"Error fetching stones: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/stones/<int:stone_id>", methods=["GET"])
+def get_stone(stone_id):
+    try:
+        res = supabase.table("stones").select("*").eq("id", stone_id).single().execute()
+        if not res.data:
+            return jsonify({"error": "Stone not found"}), 404
+        return jsonify(res.data)
+    except Exception as e:
+        print(f"Error fetching stone {stone_id}: {e}")
+        return jsonify({"error": str(e)}), 404
+
+@app.route("/api/stones", methods=["POST"])
+def create_stone():
+    try:
+        data = request.json or {}
+        name = (data.get("name") or "").strip()
+        if not name:
+            return jsonify({"error": "Name required"}), 400
+        payload = {
+            "name": name,
+            "slug": (data.get("slug") or "").strip() or slugify(name),
+            "image_url": (data.get("image_url") or "").strip() or None,
+            "description": (data.get("description") or "").strip() or None,
+            "available": data.get("available", True),
+        }
+        res = supabase.table("stones").insert(payload).execute()
+        if not res.data:
+            return jsonify({"error": "Failed to create stone"}), 500
+        return jsonify(res.data[0]), 201
+    except Exception as e:
+        print(f"Error creating stone: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/stones/<int:stone_id>", methods=["PUT"])
+def update_stone(stone_id):
+    try:
+        data = request.json or {}
+        payload = {}
+        if "name" in data:
+            name = str(data["name"]).strip()
+            if not name:
+                return jsonify({"error": "Name cannot be empty"}), 400
+            payload["name"] = name
+            if "slug" not in data or not str(data.get("slug", "")).strip():
+                payload["slug"] = slugify(name)
+        if "slug" in data and str(data["slug"]).strip():
+            payload["slug"] = str(data["slug"]).strip()
+        if "image_url" in data:
+            payload["image_url"] = str(data["image_url"]).strip() or None
+        if "description" in data:
+            payload["description"] = str(data["description"]).strip() or None
+        if "available" in data:
+            payload["available"] = bool(data["available"])
+
+        if payload:
+            res = supabase.table("stones").update(payload).eq("id", stone_id).execute()
+            if not res.data:
+                return jsonify({"error": "Stone not found"}), 404
+            return jsonify(res.data[0])
+
+        res = supabase.table("stones").select("*").eq("id", stone_id).single().execute()
+        return jsonify(res.data)
+    except Exception as e:
+        print(f"Error updating stone {stone_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/stones/<int:stone_id>", methods=["DELETE"])
+def delete_stone(stone_id):
+    try:
+        supabase.table("product_stones").delete().eq("stone_id", stone_id).execute()
+        supabase.table("stones").delete().eq("id", stone_id).execute()
+        return jsonify({"ok": True})
+    except Exception as e:
+        print(f"Error deleting stone {stone_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # ─── Products ─────────────────────────────────────────────────────────────────
 
 @app.route("/api/products", methods=["GET"])
 def get_products():
     res = (
         supabase.table("products")
-        .select("*, categories(name), product_images(id, image_url, sort_order)")
+        .select("*, categories(name), product_images(id, image_url, sort_order), product_stones(stone_id, stones(id, name, slug))")
         .order("created_at", desc=True)
         .execute()
     )
@@ -85,7 +172,7 @@ def get_products():
 def get_product(prod_id):
     res = (
         supabase.table("products")
-        .select("*, categories(name), product_images(id, image_url, sort_order)")
+        .select("*, categories(name), product_images(id, image_url, sort_order), product_stones(stone_id, stones(id, name, slug))")
         .eq("id", prod_id)
         .single()
         .execute()
@@ -94,7 +181,7 @@ def get_product(prod_id):
 
 @app.route("/api/products", methods=["POST"])
 def create_product():
-    data = request.json
+    data = request.json or {}
     title = data.get("title", "").strip()
     if not title:
         return jsonify({"error": "Title required"}), 400
@@ -125,12 +212,26 @@ def create_product():
                 "sort_order": i,
             }).execute()
 
-    return jsonify(product), 201
+    # Insert product stones
+    stone_ids = data.get("stone_ids", [])
+    if stone_ids:
+        stone_rows = [{"product_id": product["id"], "stone_id": int(sid)} for sid in stone_ids if sid]
+        if stone_rows:
+            supabase.table("product_stones").insert(stone_rows).execute()
+
+    full_res = (
+        supabase.table("products")
+        .select("*, categories(name), product_images(id, image_url, sort_order), product_stones(stone_id, stones(id, name, slug))")
+        .eq("id", product["id"])
+        .single()
+        .execute()
+    )
+    return jsonify(full_res.data), 201
 
 @app.route("/api/products/<int:prod_id>", methods=["PUT"])
 def update_product(prod_id):
     try:
-        data = request.json
+        data = request.json or {}
         payload = {}
         for field in ["title", "description", "price", "old_price", "image_url", "category_id", "available", "slug", "bestseller"]:
             if field in data:
@@ -155,9 +256,17 @@ def update_product(prod_id):
                         "sort_order": i,
                     }).execute()
 
+        # Handle stones replacement
+        if "stone_ids" in data:
+            supabase.table("product_stones").delete().eq("product_id", prod_id).execute()
+            stone_ids = data.get("stone_ids") or []
+            stone_rows = [{"product_id": prod_id, "stone_id": int(sid)} for sid in stone_ids if sid]
+            if stone_rows:
+                supabase.table("product_stones").insert(stone_rows).execute()
+
         res = (
             supabase.table("products")
-            .select("*, categories(name), product_images(id, image_url, sort_order)")
+            .select("*, categories(name), product_images(id, image_url, sort_order), product_stones(stone_id, stones(id, name, slug))")
             .eq("id", prod_id)
             .single()
             .execute()
@@ -169,6 +278,7 @@ def update_product(prod_id):
 
 @app.route("/api/products/<int:prod_id>", methods=["DELETE"])
 def delete_product(prod_id):
+    supabase.table("product_stones").delete().eq("product_id", prod_id).execute()
     supabase.table("product_images").delete().eq("product_id", prod_id).execute()
     supabase.table("products").delete().eq("id", prod_id).execute()
     return jsonify({"ok": True})
@@ -177,7 +287,7 @@ def delete_product(prod_id):
 
 @app.route("/api/upload", methods=["POST"])
 def upload_image():
-    bucket = request.form.get("bucket", "products")  # 'products' or 'categories'
+    bucket = request.form.get("bucket", "products")  # 'products', 'categories', or 'stones'
     file = request.files.get("file")
     if not file:
         return jsonify({"error": "No file"}), 400
@@ -242,16 +352,21 @@ def update_order(order_id):
 def get_stats():
     products = supabase.table("products").select("id, available").execute()
     categories = supabase.table("categories").select("id").execute()
+    stones = supabase.table("stones").select("id, available").execute()
     orders = supabase.table("orders").select("id, total, status").execute()
     total_products = len(products.data)
     active_products = sum(1 for p in products.data if p.get("available"))
     total_categories = len(categories.data)
+    total_stones = len(stones.data)
+    active_stones = sum(1 for s in stones.data if s.get("available"))
     total_orders = len(orders.data)
     total_revenue = sum(float(o.get("total", 0)) for o in orders.data if o.get("status") not in ("cancelled", "failed"))
     return jsonify({
         "total_products": total_products,
         "active_products": active_products,
         "total_categories": total_categories,
+        "total_stones": total_stones,
+        "active_stones": active_stones,
         "total_orders": total_orders,
         "total_revenue": total_revenue,
     })

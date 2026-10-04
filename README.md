@@ -20,10 +20,11 @@ Open http://localhost:5000 in your browser.
 
 ## Features
 
-- **Dashboard** — Live stats: total products, active products, categories, orders, revenue
-- **Products** — Full CRUD: create, edit, delete with main image + gallery (up to 8 extra images)
+- **Dashboard** — Live stats: total products, active products, categories, stones, orders, revenue
+- **Products** — Full CRUD: create, edit, delete with main image + gallery (up to 8 extra images) and multi-stone crystal assignment
 - **Categories** — Card-based view with CRUD and image management
-- **Image Upload** — Drag & drop or click to upload to Supabase Storage (`products` / `categories` buckets)
+- **Stones & Crystals** — Manage crystal taxonomy (name, slug, description/healing properties, status, image)
+- **Image Upload** — Drag & drop or click to upload to Supabase Storage (`products` / `categories` / `stones` buckets)
   - Or paste a direct URL instead
 - **Smooth UI** — Dark luxury theme, animated modals, toast notifications, confirm dialogs
 
@@ -32,6 +33,7 @@ Open http://localhost:5000 in your browser.
 Make sure your storage buckets are created and set to **public**:
 - `products` — for product images
 - `categories` — for category images
+- `stones` — for crystal & stone images
 
 ## Notes
 

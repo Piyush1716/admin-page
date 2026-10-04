@@ -179,7 +179,7 @@
   /* ── Stats Bar ── */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 14px;
     margin-bottom: 28px;
   }
@@ -872,6 +872,156 @@
   .cat-card-slug { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
   .cat-card-actions { display: flex; gap: 6px; margin-top: 10px; }
 
+  /* ── Dashboard Grid ── */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  /* ── Stone Grid & Cards ── */
+  .stone-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    padding: 20px;
+  }
+  .stone-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color var(--transition), transform var(--transition);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+  }
+  .stone-card:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+  .stone-card-img-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: var(--bg2);
+    overflow: hidden;
+  }
+  .stone-card-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .stone-card-placeholder {
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    background: var(--bg2);
+    color: var(--gold-dim);
+  }
+  .stone-card-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+  }
+  .stone-card-body { padding: 14px; flex: 1; display: flex; flex-direction: column; }
+  .stone-card-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+  .stone-card-slug { font-size: 0.72rem; color: var(--gold); margin-top: 2px; }
+  .stone-card-desc {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+  }
+  .stone-card-actions { display: flex; gap: 6px; margin-top: 14px; align-items: center; }
+
+  /* ── Product Stones Multi-Selector ── */
+  .stone-picker-container {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 6px;
+  }
+  .selected-stones-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 38px;
+    padding: 6px 8px;
+    background: var(--bg2);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .stone-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--gold-glow);
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    padding: 3px 8px;
+    border-radius: 14px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .stone-chip-remove {
+    cursor: pointer;
+    background: rgba(0,0,0,0.3);
+    border-radius: 50%;
+    width: 14px; height: 14px;
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    transition: color 0.15s, background 0.15s;
+  }
+  .stone-chip-remove:hover { color: #fff; background: var(--ruby-light); }
+  .no-stones-msg {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  .stone-chips-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 150px;
+    overflow-y: auto;
+    padding: 6px 2px;
+  }
+  .stone-option-pill {
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 0.72rem;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text-dim);
+    transition: all var(--transition);
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .stone-option-pill:hover {
+    border-color: var(--gold-dim);
+    color: var(--text);
+  }
+  .stone-option-pill.selected {
+    background: var(--gold-glow);
+    border-color: var(--gold);
+    color: var(--gold);
+    font-weight: 500;
+  }
+  .stone-option-pill.hidden-filter {
+    display: none !important;
+  }
+
   /* ── Divider ── */
   .divider { height: 1px; background: var(--border); margin: 14px 0; }
 
@@ -948,6 +1098,10 @@
       <span class="icon">⬡</span> Categories
       <span class="badge" id="nav-cat-count">—</span>
     </div>
+    <div class="nav-item" onclick="goTo('stones')">
+      <span class="icon">💎</span> Stones
+      <span class="badge" id="nav-stone-count">—</span>
+    </div>
     <div class="nav-section-label">Sales</div>
     <div class="nav-item" onclick="goTo('orders')">
       <span class="icon">🛒</span> Orders
@@ -977,10 +1131,11 @@
         <div class="stat-card"><div class="stat-label">Total Products</div><div class="stat-value" id="s-products">—</div></div>
         <div class="stat-card"><div class="stat-label">Active Products</div><div class="stat-value" id="s-active">—</div></div>
         <div class="stat-card"><div class="stat-label">Categories</div><div class="stat-value" id="s-cats">—</div></div>
+        <div class="stat-card"><div class="stat-label">Stones / Crystals</div><div class="stat-value" id="s-stones">—</div><div class="stat-sub">active taxonomy</div></div>
         <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value" id="s-orders">—</div></div>
         <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value" id="s-revenue">—</div><div class="stat-sub">fulfilled orders</div></div>
       </div>
-      <div class="dashboard-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="dashboard-grid">
         <div class="panel">
           <div class="panel-header"><div class="panel-title">Quick Add Product</div></div>
           <div style="padding:20px;">
@@ -995,6 +1150,13 @@
             <button class="btn btn-outline" onclick="openCategoryModal()">＋ Add Category</button>
           </div>
         </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Quick Add Stone</div></div>
+          <div style="padding:20px;">
+            <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:14px;">Add a new healing crystal or stone to the collection.</p>
+            <button class="btn btn-outline" onclick="openStoneModal()">＋ Add Stone</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1005,7 +1167,7 @@
           <div class="panel-title">Products</div>
           <div class="search-wrap">
             <span class="icon">⌕</span>
-            <input class="search-input" type="text" id="prod-search" placeholder="Search products…" oninput="filterProducts()">
+            <input class="search-input" type="text" id="prod-search" placeholder="Search products by title, slug, stone…" oninput="filterProducts()">
           </div>
           <button class="btn btn-gold btn-sm" onclick="openProductModal()">＋ Add Product</button>
         </div>
@@ -1016,6 +1178,7 @@
                 <th>Image</th>
                 <th>Title</th>
                 <th>Category</th>
+                <th>Stones</th>
                 <th>Price</th>
                 <th>Status</th>
                 <th>Gallery</th>
@@ -1023,7 +1186,7 @@
               </tr>
             </thead>
             <tbody id="products-tbody">
-              <tr class="loading-row"><td colspan="7">Loading products…</td></tr>
+              <tr class="loading-row"><td colspan="8">Loading products…</td></tr>
             </tbody>
           </table>
         </div>
@@ -1038,6 +1201,23 @@
           <button class="btn btn-gold btn-sm" onclick="openCategoryModal()">＋ Add Category</button>
         </div>
         <div class="cat-grid" id="cat-grid">
+          <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stones -->
+    <div class="page" id="page-stones">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Stones & Crystals</div>
+          <div class="search-wrap">
+            <span class="icon">⌕</span>
+            <input class="search-input" type="text" id="stone-search" placeholder="Search crystals by name, slug or description…" oninput="filterStones()">
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="openStoneModal()">＋ Add Stone</button>
+        </div>
+        <div class="stone-grid" id="stone-grid">
           <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Loading…</div>
         </div>
       </div>
@@ -1163,6 +1343,22 @@
             <span class="toggle-label">Mark as Bestseller</span>
           </div>
         </div>
+        <div class="form-group full">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label style="margin-bottom:0">Associated Crystals / Stones</label>
+            <span style="font-size:0.7rem; color:var(--text-dim);">Products can contain multiple stones</span>
+          </div>
+          <div class="stone-picker-container">
+            <div class="selected-stones-box" id="product-selected-stones-box">
+              <span class="no-stones-msg">No crystals selected (click below to assign)</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:8px;">
+              <input type="text" class="search-input" id="product-stone-search" placeholder="Type to filter crystals (e.g. Rose Quartz, Citrine)…" oninput="filterProductStonePicker()" style="flex:1; padding:5px 10px; font-size:0.75rem;">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="clearProductStones()" style="font-size:0.7rem; padding:4px 8px;">Clear</button>
+            </div>
+            <div class="stone-chips-pool" id="product-stones-pool"></div>
+          </div>
+        </div>
       </div>
       <div class="divider"></div>
       <div class="form-group">
@@ -1237,6 +1433,65 @@
     <div class="modal-footer">
       <button class="btn btn-outline" id="category-cancel-btn" onclick="cancelModal('category-modal')">Cancel</button>
       <button class="btn btn-gold" onclick="saveCategory()" id="save-cat-btn">Save Category</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stone Modal -->
+<div class="modal-overlay" id="stone-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="stone-modal-title">Add Stone</div>
+      <button class="btn btn-ghost btn-icon" onclick="cancelModal('stone-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Name *</label>
+          <input type="text" id="s-name" placeholder="e.g. Rose Quartz" oninput="autoStoneSlug()">
+        </div>
+        <div class="form-group full">
+          <label>Slug</label>
+          <input type="text" id="s-slug" placeholder="auto-generated">
+        </div>
+        <div class="form-group full">
+          <label>Description & Properties</label>
+          <textarea id="s-desc" rows="3" placeholder="Healing properties, meaning, chakra associations…"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>Availability</label>
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="s-available" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Active / Visible on Storefront</span>
+          </div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="form-group">
+        <label>Stone Image</label>
+        <div class="upload-zone" id="stone-upload-zone"
+          onclick="document.getElementById('stone-file-input').click()"
+          ondragover="dragOver(event,'stone-upload-zone')"
+          ondragleave="dragLeave('stone-upload-zone')"
+          ondrop="handleDrop(event,'stone','stones')">
+          <div class="upload-icon">💎</div>
+          <p>Drop image or <strong>click to upload</strong></p>
+        </div>
+        <input type="file" accept="image/*" id="stone-file-input" style="display:none" onchange="uploadFile(event,'stone','stones')">
+        <div id="stone-upload-progress" style="display:none" class="upload-progress"><div class="spinner"></div> Uploading…</div>
+        <div class="url-or-upload">or paste URL</div>
+        <input type="text" id="s-image-url" placeholder="https://…" oninput="previewStoneImg()">
+        <div class="img-preview-wrap" id="stone-img-preview" style="display:none">
+          <img class="img-preview" id="stone-img-el" src="">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="stone-cancel-btn" onclick="cancelModal('stone-modal')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveStone()" id="save-stone-btn">Save Stone</button>
     </div>
   </div>
 </div>
@@ -1341,8 +1596,9 @@
 
 <script>
 const API = '';
-let products = [], categories = [], orders = [], editingProductId = null, editingCatId = null, editingReviewId = null;
+let products = [], categories = [], stones = [], orders = [], editingProductId = null, editingCatId = null, editingStoneId = null, editingReviewId = null;
 let extraImages = [null,null,null,null,null,null,null,null];
+let selectedProductStoneIds = new Set();
 let confirmCallback = null;
 
 
@@ -1379,11 +1635,12 @@ function goTo(page) {
     if (page === 'dashboard' && text.includes('dashboard')) n.classList.add('active');
     else if (page === 'products' && text.includes('product')) n.classList.add('active');
     else if (page === 'categories' && text.includes('categor')) n.classList.add('active');
+    else if (page === 'stones' && (text.includes('stone') || text.includes('crystal'))) n.classList.add('active');
     else if (page === 'orders' && text.includes('order')) n.classList.add('active');
     else if (page === 'reviews' && text.includes('review')) n.classList.add('active');
   });
 
-  const titles = { dashboard: 'Dashboard', products: 'Products', categories: 'Categories', orders: 'Orders', reviews: 'Customer Reviews' };
+  const titles = { dashboard: 'Dashboard', products: 'Products', categories: 'Categories', stones: 'Stones & Crystals', orders: 'Orders', reviews: 'Customer Reviews' };
   document.getElementById('topbar-title').textContent = titles[page] || page;
   const actions = document.getElementById('topbar-actions');
   actions.innerHTML = '';
@@ -1393,6 +1650,9 @@ function goTo(page) {
   } else if (page === 'categories') {
     actions.innerHTML = '<button class="btn btn-outline btn-sm" onclick="openCategoryModal()">＋ Add Category</button>';
     loadCategories();
+  } else if (page === 'stones') {
+    actions.innerHTML = '<button class="btn btn-gold btn-sm" onclick="openStoneModal()">＋ Add Stone</button>';
+    loadStones();
   } else if (page === 'orders') {
     loadOrders();
   } else if (page === 'reviews') {
@@ -1429,16 +1689,17 @@ function dismissCancelConfirm() {
   closeConfirm();
   resetCancelConfirm('product-modal');
   resetCancelConfirm('category-modal');
+  resetCancelConfirm('stone-modal');
 }
 
 // ── Modals & Cancel Confirmation ─────────────────────────────────────────────
-let activeUploads = { 'product-modal': 0, 'category-modal': 0 };
+let activeUploads = { 'product-modal': 0, 'category-modal': 0, 'stone-modal': 0 };
 let uploadControllers = [];
-let cancelConfirmState = { 'product-modal': false, 'category-modal': false };
-let cancelResetTimers = { 'product-modal': null, 'category-modal': null };
+let cancelConfirmState = { 'product-modal': false, 'category-modal': false, 'stone-modal': false };
+let cancelResetTimers = { 'product-modal': null, 'category-modal': null, 'stone-modal': null };
 
 function updateCancelButtonUI(id, isConfirming) {
-  const btnId = id === 'product-modal' ? 'product-cancel-btn' : (id === 'category-modal' ? 'category-cancel-btn' : null);
+  const btnId = id === 'product-modal' ? 'product-cancel-btn' : (id === 'category-modal' ? 'category-cancel-btn' : (id === 'stone-modal' ? 'stone-cancel-btn' : null));
   if (!btnId) return;
   const btn = document.getElementById(btnId);
   if (!btn) return;
@@ -1533,6 +1794,7 @@ function closeModal(id) {
   resetCancelConfirm(id);
   if (id === 'product-modal') resetProductForm();
   if (id === 'category-modal') resetCatForm();
+  if (id === 'stone-modal') resetStoneForm();
   if (id === 'review-modal') editingReviewId = null;
 }
 
@@ -1545,10 +1807,14 @@ async function loadStats() {
     document.getElementById('s-products').textContent = d.total_products;
     document.getElementById('s-active').textContent = d.active_products;
     document.getElementById('s-cats').textContent = d.total_categories;
+    const sStones = document.getElementById('s-stones');
+    if (sStones) sStones.textContent = d.total_stones ?? '—';
     document.getElementById('s-orders').textContent = d.total_orders;
     document.getElementById('s-revenue').textContent = '₹' + Number(d.total_revenue).toLocaleString('en-IN', {maximumFractionDigits:0});
     document.getElementById('nav-prod-count').textContent = d.total_products;
     document.getElementById('nav-cat-count').textContent = d.total_categories;
+    const navStone = document.getElementById('nav-stone-count');
+    if (navStone) navStone.textContent = d.total_stones ?? '—';
     const navOrder = document.getElementById('nav-order-count');
     if (navOrder) navOrder.textContent = d.total_orders;
   } catch(e) { console.error(e); }
@@ -1673,10 +1939,248 @@ async function deleteCategory(id, name) {
   });
 }
 
+// ── Stones / Crystals ────────────────────────────────────────────────────────
+async function loadStones() {
+  const grid = document.getElementById('stone-grid');
+  if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Loading crystals…</div>';
+  try {
+    const res = await fetch(API + '/api/stones');
+    stones = await res.json();
+    renderStones(stones);
+    const navStone = document.getElementById('nav-stone-count');
+    if (navStone) navStone.textContent = stones.length;
+    renderProductStonePicker();
+  } catch(e) {
+    console.error('Error loading stones:', e);
+    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Failed to load stones</div>';
+  }
+}
+
+function renderStones(list) {
+  const grid = document.getElementById('stone-grid');
+  if (!grid) return;
+  if (!list.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:2rem;margin-bottom:8px;">💎</div><p>No crystals or stones found</p></div>';
+    return;
+  }
+  grid.innerHTML = list.map(s => `
+    <div class="stone-card" onclick="openStoneModal(${s.id})">
+      <div class="stone-card-img-wrap">
+        ${s.image_url ? `<img class="stone-card-img" src="${s.image_url}" alt="${s.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+        <div class="stone-card-placeholder" style="${s.image_url ? 'display:none;' : ''}">💎</div>
+        <div class="stone-card-badge">
+          <span class="badge-pill ${s.available !== false ? 'badge-green' : 'badge-red'}">${s.available !== false ? 'Active' : 'Hidden'}</span>
+        </div>
+      </div>
+      <div class="stone-card-body">
+        <div class="stone-card-name">${s.name}</div>
+        <div class="stone-card-slug">/stone/${s.slug}</div>
+        <div class="stone-card-desc" title="${(s.description || '').replace(/"/g, '&quot;')}">${s.description || 'No energetic description set.'}</div>
+        <div class="stone-card-actions">
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openStoneModal(${s.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteStone(${s.id},'${s.name.replace(/'/g, "\\'")}')">Delete</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterStones() {
+  const q = (document.getElementById('stone-search').value || '').toLowerCase().trim();
+  if (!q) {
+    renderStones(stones);
+    return;
+  }
+  const filtered = stones.filter(s => 
+    (s.name || '').toLowerCase().includes(q) || 
+    (s.slug || '').toLowerCase().includes(q) || 
+    (s.description || '').toLowerCase().includes(q)
+  );
+  renderStones(filtered);
+}
+
+function openStoneModal(id = null) {
+  resetStoneForm();
+  resetCancelConfirm('stone-modal');
+  editingStoneId = id;
+  document.getElementById('stone-modal-title').textContent = id ? 'Edit Stone' : 'Add Stone';
+  document.getElementById('save-stone-btn').textContent = id ? 'Save Changes' : 'Save Stone';
+  if (id) {
+    const s = stones.find(x => x.id === id);
+    if (s) {
+      document.getElementById('s-name').value = s.name || '';
+      document.getElementById('s-slug').value = s.slug || '';
+      document.getElementById('s-desc').value = s.description || '';
+      document.getElementById('s-available').checked = s.available !== false;
+      document.getElementById('s-image-url').value = s.image_url || '';
+      if (s.image_url) {
+        document.getElementById('stone-img-el').src = s.image_url;
+        document.getElementById('stone-img-preview').style.display = 'block';
+      }
+    }
+  }
+  openModal('stone-modal');
+}
+
+function resetStoneForm() {
+  ['s-name','s-slug','s-desc','s-image-url'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const av = document.getElementById('s-available'); if (av) av.checked = true;
+  const preview = document.getElementById('stone-img-preview'); if (preview) preview.style.display = 'none';
+  const progress = document.getElementById('stone-upload-progress'); if (progress) progress.style.display = 'none';
+  editingStoneId = null;
+}
+
+function autoStoneSlug() {
+  const name = document.getElementById('s-name').value;
+  document.getElementById('s-slug').value = slugify(name);
+}
+
+function previewStoneImg() {
+  const url = document.getElementById('s-image-url').value.trim();
+  if (url) {
+    document.getElementById('stone-img-el').src = url;
+    document.getElementById('stone-img-preview').style.display = 'block';
+  } else {
+    document.getElementById('stone-img-preview').style.display = 'none';
+  }
+}
+
+async function saveStone() {
+  if (activeUploads['stone-modal'] > 0) {
+    toast('Please wait for image upload to complete before saving', 'error');
+    return;
+  }
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { toast('Stone name is required', 'error'); return; }
+  const payload = {
+    name,
+    slug: document.getElementById('s-slug').value.trim() || slugify(name),
+    description: document.getElementById('s-desc').value.trim() || null,
+    available: document.getElementById('s-available').checked,
+    image_url: document.getElementById('s-image-url').value.trim() || null,
+  };
+  const btn = document.getElementById('save-stone-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    const url = editingStoneId ? `/api/stones/${editingStoneId}` : '/api/stones';
+    const method = editingStoneId ? 'PUT' : 'POST';
+    const res = await fetch(API + url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(await res.text());
+    toast(editingStoneId ? 'Stone updated' : 'Stone created');
+    closeModal('stone-modal');
+    await loadStones();
+    await loadStats();
+  } catch(e) {
+    console.error('Error saving stone:', e);
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    btn.textContent = editingStoneId ? 'Save Changes' : 'Save Stone';
+    btn.disabled = false;
+  }
+}
+
+async function deleteStone(id, name) {
+  confirm('Delete Stone', `Delete crystal "${name}"? It will be unlinked from any associated products.`, async () => {
+    try {
+      const res = await fetch(API + `/api/stones/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      toast('Stone deleted');
+      await loadStones();
+      await loadStats();
+      if (document.getElementById('page-products').classList.contains('active')) {
+        await loadProducts();
+      }
+    } catch(e) {
+      console.error('Error deleting stone:', e);
+      toast('Error: ' + e.message, 'error');
+    }
+  });
+}
+
+// ── Product Stone Picker Functions ───────────────────────────────────────────
+function renderProductStonePicker() {
+  const pool = document.getElementById('product-stones-pool');
+  if (!pool) return;
+  if (!stones.length) {
+    pool.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted);">No stones loaded yet.</span>';
+    return;
+  }
+  pool.innerHTML = stones.map(s => {
+    const isSelected = selectedProductStoneIds.has(s.id);
+    return `
+      <div class="stone-option-pill ${isSelected ? 'selected' : ''}" id="stone-pill-${s.id}" data-name="${s.name.toLowerCase()}" onclick="toggleProductStone(${s.id})">
+        <span>💎</span> ${s.name} ${isSelected ? '✓' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function filterProductStonePicker() {
+  const q = (document.getElementById('product-stone-search').value || '').toLowerCase().trim();
+  const pills = document.querySelectorAll('.stone-option-pill');
+  pills.forEach(pill => {
+    const name = pill.getAttribute('data-name') || '';
+    if (!q || name.includes(q)) {
+      pill.classList.remove('hidden-filter');
+    } else {
+      pill.classList.add('hidden-filter');
+    }
+  });
+}
+
+function toggleProductStone(stoneId) {
+  if (selectedProductStoneIds.has(stoneId)) {
+    selectedProductStoneIds.delete(stoneId);
+  } else {
+    selectedProductStoneIds.add(stoneId);
+  }
+  const pill = document.getElementById(`stone-pill-${stoneId}`);
+  if (pill) {
+    const s = stones.find(x => x.id === stoneId);
+    const isSelected = selectedProductStoneIds.has(stoneId);
+    pill.classList.toggle('selected', isSelected);
+    pill.innerHTML = `<span>💎</span> ${s ? s.name : ''} ${isSelected ? '✓' : ''}`;
+  }
+  renderSelectedProductStones();
+}
+
+function removeProductStone(stoneId) {
+  selectedProductStoneIds.delete(stoneId);
+  const pill = document.getElementById(`stone-pill-${stoneId}`);
+  if (pill) {
+    const s = stones.find(x => x.id === stoneId);
+    pill.classList.remove('selected');
+    pill.innerHTML = `<span>💎</span> ${s ? s.name : ''}`;
+  }
+  renderSelectedProductStones();
+}
+
+function clearProductStones() {
+  selectedProductStoneIds.clear();
+  renderProductStonePicker();
+  renderSelectedProductStones();
+}
+
+function renderSelectedProductStones() {
+  const box = document.getElementById('product-selected-stones-box');
+  if (!box) return;
+  if (!selectedProductStoneIds.size) {
+    box.innerHTML = '<span class="no-stones-msg">No crystals selected (click below to assign)</span>';
+    return;
+  }
+  const selectedList = stones.filter(s => selectedProductStoneIds.has(s.id));
+  box.innerHTML = selectedList.map(s => `
+    <span class="stone-chip">
+      💎 ${s.name}
+      <span class="stone-chip-remove" onclick="removeProductStone(${s.id})">✕</span>
+    </span>
+  `).join('');
+}
+
 // ── Products ─────────────────────────────────────────────────────────────────
 async function loadProducts() {
   const tbody = document.getElementById('products-tbody');
-  tbody.innerHTML = '<tr class="loading-row"><td colspan="7">Loading products…</td></tr>';
+  tbody.innerHTML = '<tr class="loading-row"><td colspan="8">Loading products…</td></tr>';
   const res = await fetch(API + '/api/products');
   products = await res.json();
   renderProducts(products);
@@ -1685,12 +2189,20 @@ async function loadProducts() {
 function renderProducts(list) {
   const tbody = document.getElementById('products-tbody');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="icon">◇</div><p>No products yet. Add your first gem!</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">◇</div><p>No products yet. Add your first gem!</p></div></td></tr>';
     return;
   }
   tbody.innerHTML = list.map(p => {
     const catName = p.categories?.name || '—';
     const extraCount = (p.product_images || []).length;
+    const stoneList = (p.product_stones || []).map(ps => ps.stones).filter(Boolean);
+    const stonesHtml = stoneList.length > 0
+      ? `<div style="display:flex; flex-wrap:wrap; gap:4px; max-width:180px;">` +
+        stoneList.slice(0, 3).map(s => `<span class="badge-pill badge-gold" style="font-size:0.65rem; padding:2px 6px;">💎 ${s.name}</span>`).join('') +
+        (stoneList.length > 3 ? `<span class="badge-pill" style="font-size:0.65rem; padding:2px 6px; background:var(--bg3); color:var(--text-dim);" title="${stoneList.slice(3).map(s => s.name).join(', ')}">+${stoneList.length - 3}</span>` : '') +
+        `</div>`
+      : `<span style="color:var(--text-muted); font-size:0.75rem;">—</span>`;
+
     return `<tr>
       <td>${p.image_url ? `<img class="thumb" src="${p.image_url}" alt="" onerror="this.style.opacity=0">` : `<div class="thumb-placeholder">◇</div>`}</td>
       <td>
@@ -1701,6 +2213,7 @@ function renderProducts(list) {
         <div style="font-size:0.72rem;color:var(--text-muted)">${p.slug || ''}</div>
       </td>
       <td><span class="badge-pill badge-blue">${catName}</span></td>
+      <td>${stonesHtml}</td>
       <td>
         <span class="price-main">₹${Number(p.price).toLocaleString('en-IN')}</span>
         ${p.old_price && p.old_price > p.price ? `<span class="price-old">₹${Number(p.old_price).toLocaleString('en-IN')}</span>` : ''}
@@ -1718,8 +2231,14 @@ function renderProducts(list) {
 }
 
 function filterProducts() {
-  const q = document.getElementById('prod-search').value.toLowerCase();
-  const filtered = products.filter(p => p.title.toLowerCase().includes(q) || (p.slug||'').toLowerCase().includes(q));
+  const q = document.getElementById('prod-search').value.toLowerCase().trim();
+  const filtered = products.filter(p => {
+    const titleMatch = (p.title || '').toLowerCase().includes(q);
+    const slugMatch = (p.slug || '').toLowerCase().includes(q);
+    const catMatch = (p.categories?.name || '').toLowerCase().includes(q);
+    const stoneMatch = (p.product_stones || []).some(ps => (ps.stones?.name || '').toLowerCase().includes(q));
+    return titleMatch || slugMatch || catMatch || stoneMatch;
+  });
   renderProducts(filtered);
 }
 
@@ -1768,6 +2287,10 @@ function openProductModal(id = null) {
   resetCancelConfirm('product-modal');
   editingProductId = id;
   extraImages = [null,null,null,null,null,null,null,null];
+  selectedProductStoneIds.clear();
+  const searchInput = document.getElementById('product-stone-search');
+  if (searchInput) searchInput.value = '';
+
   document.getElementById('product-modal-title').textContent = id ? 'Edit Product' : 'Add Product';
   document.getElementById('save-product-btn').textContent = id ? 'Save Changes' : 'Save Product';
 
@@ -1791,11 +2314,20 @@ function openProductModal(id = null) {
         document.getElementById('main-img-el').src = p.image_url;
         document.getElementById('main-img-preview').style.display = 'block';
       }
+      // stones
+      if (p.product_stones && Array.isArray(p.product_stones)) {
+        p.product_stones.forEach(ps => {
+          if (ps.stone_id) selectedProductStoneIds.add(ps.stone_id);
+          else if (ps.stones?.id) selectedProductStoneIds.add(ps.stones.id);
+        });
+      }
       // extra images
       const imgs = (p.product_images || []).sort((a,b) => a.sort_order - b.sort_order);
       imgs.forEach((img, i) => { if (i < 8) extraImages[i] = img.image_url; });
     }
   }
+  renderProductStonePicker();
+  renderSelectedProductStones();
   buildExtraGrid();
   openModal('product-modal');
 }
@@ -1812,6 +2344,9 @@ function resetProductForm() {
   // Clean up hidden extra file inputs
   document.querySelectorAll('input[id^="extra-file-"]').forEach(el => el.remove());
   extraImages = [null,null,null,null,null,null,null,null];
+  selectedProductStoneIds.clear();
+  renderProductStonePicker();
+  renderSelectedProductStones();
   buildExtraGrid();
   editingProductId = null;
 }
@@ -1851,6 +2386,7 @@ async function saveProduct() {
     category_id: document.getElementById('p-category').value || null,
     available: document.getElementById('p-available').checked,
     bestseller: document.getElementById('p-bestseller').checked,
+    stone_ids: Array.from(selectedProductStoneIds),
     extra_images: extraImages.filter(Boolean),
   };
 
@@ -1892,7 +2428,7 @@ async function uploadFile(event, target, bucket) {
 
 async function handleDrop(event, target, bucket) {
   event.preventDefault();
-  const zoneId = target === 'main' ? 'main-upload-zone' : 'cat-upload-zone';
+  const zoneId = target === 'main' ? 'main-upload-zone' : (target === 'stone' ? 'stone-upload-zone' : 'cat-upload-zone');
   dragLeave(zoneId);
   const file = event.dataTransfer.files[0];
   if (!file || !file.type.startsWith('image/')) { toast('Please drop an image file', 'error'); return; }
@@ -1900,7 +2436,7 @@ async function handleDrop(event, target, bucket) {
 }
 
 async function doUpload(file, target, bucket) {
-  const modalId = target === 'cat' ? 'category-modal' : 'product-modal';
+  const modalId = target === 'cat' ? 'category-modal' : (target === 'stone' ? 'stone-modal' : 'product-modal');
   activeUploads[modalId] = (activeUploads[modalId] || 0) + 1;
 
   const controller = new AbortController();
@@ -1919,6 +2455,10 @@ async function doUpload(file, target, bucket) {
     progressEl = document.getElementById('cat-upload-progress');
     previewImgEl = document.getElementById('cat-img-el');
     urlInput = document.getElementById('c-image-url');
+  } else if (target === 'stone') {
+    progressEl = document.getElementById('stone-upload-progress');
+    previewImgEl = document.getElementById('stone-img-el');
+    urlInput = document.getElementById('s-image-url');
   } else if (target.startsWith('extra')) {
     const idx = parseInt(target.replace('extra', ''));
     extraSlotEl = document.getElementById('extra-slot-' + idx);
@@ -2398,6 +2938,7 @@ async function init() {
   buildExtraGrid();
   await loadStats();
   await loadCategories();
+  await loadStones();
   try {
     const res = await fetch(API + '/api/reviews');
     const revs = await res.json();
